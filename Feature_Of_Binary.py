@@ -122,7 +122,7 @@ def main():
         #print p_func.getAll_Nodes_Addr()
         #for item in p_func.getAll_Nodes_Addr():
             #print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (p_func.getFuncName() == 'send_mail'):
+        if (p_func.getFuncName() == 'main'):
             allnodes = p_func.getAll_Nodes_Addr()
             for i in range(len(allnodes)):
                 print hex(allnodes[i])

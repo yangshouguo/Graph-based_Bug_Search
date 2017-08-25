@@ -55,11 +55,28 @@ class AnayBinFil(object):
     def Anayl_Func_Call(self, func_name, para_num):
          if func_name == "":
              return
-         fun_addr = idc.LocByName(func_name)
-         #print hex(fun_addr),idc.GetDisasm(fun_addr)
+         
+         #get start address
+         
+         #startaddr = idc.SegByName('.rodata')
+         startaddr = MinEA() 
+         #fun_addr = idc.LocByName(func_name)
+         while True:
+            fun_addr = FindText(startaddr,SEARCH_DOWN, 0, 0, func_name)
+            if not (SegName(fun_addr)) == '.text':
+                break
+            startaddr = NextHead(fun_addr)
+
+
+         #byte_str = [hex(y) for y in bytearray(func_name)]
+         #print byte_str
+
+         print hex(fun_addr),idc.GetDisasm(fun_addr)
+         #!!!!!!!!!!! 从这修改
          call_addrs = idautils.CodeRefsTo(fun_addr,0)
          dic = {}
          for item in call_addrs:
+             print item,idc.GetDisasm(item)
              para = self.BackForward(item,para_num)
              xref_funname = GetFunctionName(item)
              dic[xref_funname] = para
@@ -69,7 +86,7 @@ class AnayBinFil(object):
         
 
 #test code
-ana_fun_name = 'printf'#要分析的函数名
+ana_fun_name = 'print1 %s'#要分析的函数名
 para_num = 3 #参数数量
 ana = AnayBinFil()
 dic = ana.Anayl_Func_Call(ana_fun_name,para_num)

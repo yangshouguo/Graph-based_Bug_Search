@@ -31,6 +31,72 @@ class Process_with_Single_Function(object):
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
+    def getString_in_instruct(self,ea,n):
+        if (GetOpType(ea,n) == 2):
+            addr = GetOperandValue(ea,n)
+            if (not SegName(addr) == '.rodata'):
+                addrx = idautils.DataRefsFrom(addr)
+                addr = addrx[0]
+            return GetString(addr)
+            
+    #return a instruction's n'th oprand's reference
+    # ea : the address of the instruction
+    # n  : order of the operand , 0-the first operand
+    def get_reference(self,ea,n):
+        if (GetOpType(ea,n) == -1):
+            return
+        if(GetOpType(ea,n) == 1):
+            print'General Register'
+        if (GetOpType(ea,n) == 2):
+            addr = GetOperandValue(ea,n)
+            print 'addr :',hex(Dword(addr))
+            print ' reference'
+            print 'segment type :' , GetSegmentAttr(addr,SEGATTR_TYPE)
+            return GetString(Dword(addr))
+        elif(GetOpType(ea,n) == 3):
+            print 'base + index'
+        elif(GetOpType(ea,n) == 4):
+            print 'B+i+Displacement'
+        elif (GetOpType(ea,n) == 5):
+            print 'immediate'
+        elif(GetOpType(ea,n) == 6):
+            print 'far address'
+            
+        return GetOperandValue(ea,n)
+    
+    def get_reference_data_one_block(self,startEA):
+        if (not self._block_boundary.has_key(startEA)):
+            return
+        endEA = self._block_boundary[startEA]
+        it_code = func_item_iterator_t(self._func,startEA)
+        ea = it_code.current()
+        while (ea<endEA):
+            print ' '.join(self.get_instruction(ea))
+            
+            #see if arrive end of the blocks
+            if(not it_code.next_code()):
+                break
+            ea = it_code.current()
+    
+    
+    
+    #get the whole instruction
+    def get_instruction(self,ea):
+        '''
+        newlist = []
+        newlist.append(ua_mnem(ea))
+        i = 0
+        op = GetOpnd(ea,i)
+        while not op == '':
+            print (self.get_reference(ea,i))
+            newlist.append(op)
+            i+=1
+            op = GetOpnd(ea,i)
+        '''
+        return idc.GetDisasm(ea)
+
+    
+    
     # startEA:basicblock's start address
     # return all instruction in one node
     def get_All_instr_in_one_Node(self,startEA):
@@ -122,12 +188,17 @@ def main():
         #print p_func.getAll_Nodes_Addr()
         #for item in p_func.getAll_Nodes_Addr():
             #print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (p_func.getFuncName() == 'main'):
+        if (p_func.getFuncName() == 'main123123'):
             allnodes = p_func.getAll_Nodes_Addr()
             for i in range(len(allnodes)):
                 print hex(allnodes[i])
                 instr_list = p_func.get_All_instr_in_one_Node(allnodes[i])
                 print instr_list
+        if (p_func.getFuncName() == 'main'):
+            allnodes = p_func.getAll_Nodes_Addr()
+            for i in range(len(allnodes)):
+                print hex(allnodes[i])
+                p_func.get_reference_data_one_block(allnodes[i])
 
 
 

@@ -118,7 +118,7 @@ def main():
         pos = ana_fun_name.find('%',pos)
 
     ana = AnayBinFil()
-    dic = ana.Anayl_Func_Call(ana_fun_name,para_num)
+    dic = ana.Anayl_Func_Call(ana_fun_name,para_num+1)
     
     print '在函数中','其调用参数为'
     for item in dic:

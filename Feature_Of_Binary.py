@@ -1,14 +1,20 @@
+# encoding:utf-8
 # time 2017:8:21  15:37
 # author ysg
 # function : extract features from executable binary file
-
-
-
-
+from idautils import *
 from idaapi import *
 from idc import *
 import sys, os
 
+# 将当前路径添加入搜索路径
+sys.path.append(os.getcwd())
+
+from LogRecorder import CLogRecoder
+
+logger = CLogRecoder(logfile='test.log')
+logger.addStreamHandler()
+logger.INFO("\n---------------------\n")
 
 class Process_with_Single_Function(object):
     def __init__(self, func_t):
@@ -30,14 +36,71 @@ class Process_with_Single_Function(object):
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
 
-    #return the string contained in this instruction
-    def getString_in_instruct(self, ea, n):
-        if (GetOpType(ea, n) == 2):
-            addr = GetOperandValue(ea, n)
-            if (not SegName(addr) == '.rodata'):
-                addrx = idautils.DataRefsFrom(addr)
-                addr = addrx[0]
-            return GetString(addr)
+    # # return the n'th operation if it is reference to memory
+    # def get_op(self, ea, n, op_type):
+    #     # Direct Memory Reference  (DATA)      addr
+    #     if (op_type == o_mem):
+    #         return GetString(GetOperandValue(ea, n))
+    #     elif (op_type == o_phrase):# Memory Ref [Base Reg + Index Reg]    phrase
+    #         return GetOperandValue(ea, n)
+
+    # return the string contained in this instruction
+    # if nothing , returns NULL
+    # something wrong
+    # TODO: handle many kinds of optype
+    def get_String_in_instruction(self, ea):
+        # logger.INFO('ea: ' + hex(ea) + ' inst: '+ GetDisasm(ea))
+        All_strings = []
+        op = 0
+        op_type = GetOpType(ea, op)
+        while (op_type != o_void):
+            # logger.INFO( 'op: %d, op_type : %d' % (op, op_type))
+            if (op_type == o_imm):
+                addr = GetOperandValue(ea, op)
+                if (not SegName(addr) == '.rodata'):
+                    addrx = list(DataRefsFrom(addr))
+                    if len(addrx) == 0:
+                        op += 1
+                        op_type = GetOpType(ea, op)
+                        continue
+                    addr = addrx[0]
+                All_strings.append(GetString(addr))
+                # logger.INFO("imm")
+                # logger.INFO(GetString(addr))
+
+            op += 1
+            try:
+                op_type = GetOpType(ea, op)
+            except RuntimeError:
+                print 'runtime error in', hex(ea), 'op', str(op) ,'OP_TYPE', op_type
+
+        if (len(All_strings) == 0):
+            return None
+
+        return All_strings
+
+    # returns all Strings referenced in one block
+    # return generator of Strings
+    def get_All_Strings_of_Block(self, block_startEA):
+        All_String = []
+        # address is not right
+        if (block_startEA not in self._block_boundary):
+            return
+
+        strings = []
+        endEA = self._block_boundary[block_startEA]
+        it_code = func_item_iterator_t(self._func, block_startEA)
+        ea = it_code.current()
+        while (ea < endEA):
+            strings = self.get_String_in_instruction(ea)
+            if strings:
+                All_String += strings
+            # see if arrive end of the blocks
+            if (not it_code.next_code()):
+                break
+            ea = it_code.current()
+
+        return All_String
 
     # return a instruction's n'th oprand's reference
     # ea : the address of the instruction
@@ -71,7 +134,12 @@ class Process_with_Single_Function(object):
             'far address'
         return GetOperandValue(ea, n)
 
-    #??? not finished
+    # there is some error to be solved
+    # returns the next address of instruction which are in same basic block
+    def get_next_instruction_addr(self, ea):
+        return next(ea)
+
+    # get_reference_data_one_block
     def get_reference_data_one_block(self, startEA):
 
         # address is not right
@@ -82,8 +150,7 @@ class Process_with_Single_Function(object):
         it_code = func_item_iterator_t(self._func, startEA)
         ea = it_code.current()
         while (ea < endEA):
-            print
-            ' '.join(self.get_instruction(ea))
+            yield (''.join(self.get_instruction(ea)))
 
             # see if arrive end of the blocks
             if (not it_code.next_code()):
@@ -107,30 +174,34 @@ class Process_with_Single_Function(object):
 
     # startEA:basicblock's start address
     # return all instruction in one block
+    # it is replaced by function get_reference_data_one_block
     def get_All_instr_in_one_block(self, startEA):
-        instr_list = []
-        if (startEA not in self._block_boundary):
-            return instr_list
 
-        endEA = self._block_boundary[startEA]
-        it_code = func_item_iterator_t(self._func, startEA)
-        ea = it_code.current()
-        while ((ea) < endEA):
-            newlist = []
-            newlist.append(ua_mnem(ea))
-            i = 0
-            op = GetOpnd(ea, i)
-            while not op == "":
-                newlist.append(op)
-                i += 1
-                op = GetOpnd(ea, i)
-
-            instr_list.append(newlist)
-            if (not it_code.next_code()):
-                break
-            ea = it_code.current()
-
-        return instr_list
+        return self.get_reference_data_one_block(startEA)
+        #
+        # instr_list = []
+        # if (startEA not in self._block_boundary):
+        #     return instr_list
+        #
+        # endEA = self._block_boundary[startEA]
+        # it_code = func_item_iterator_t(self._func, startEA)
+        # ea = it_code.current()
+        # while ((ea) < endEA):
+        #     newlist = []
+        #     newlist.append(ua_mnem(ea))
+        #     i = 0
+        #     op = GetOpnd(ea, i)
+        #     while not op == "":
+        #         newlist.append(op)
+        #         i += 1
+        #         op = GetOpnd(ea, i)
+        #
+        #     instr_list.append(newlist)
+        #     if (not it_code.next_code()):
+        #         break
+        #     ea = it_code.current()
+        #
+        # return instr_list
 
     # return function's name
     def getFuncName(self):
@@ -179,37 +250,35 @@ class Process_with_Single_Function(object):
 # print how to use this script
 def print_help():
     help = 'args not enough'
-    print help
+    print(help)
 
 
 def main():
+
+
     if len(idc.ARGV) < 0:
         print_help()
         return
     set_seg = set()
     for i in range(0, get_func_qty()):
         fun = getn_func(i)  # get_func returns a func_t struct for the function
-        segname = get_segm_name(fun.startEA)  # get the segment name of the function by address ,x86 arch segment includes (_init _plt _plt_got _text extern _fini)
+        segname = get_segm_name(
+            fun.startEA)  # get the segment name of the function by address ,x86 arch segment includes (_init _plt _plt_got _text extern _fini)
         if segname[1:3] not in ["OA", "OM", "te"]:
             continue
 
         p_func = Process_with_Single_Function(fun)
-        print p_func.getFuncName()
+        logger.INFO(p_func.getFuncName())
         # print p_func.getCFG_OF_Func()
         # print p_func.getAll_Nodes_Addr()
         # for item in p_func.getAll_Nodes_Addr():
         # print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (p_func.getFuncName() == 'main123123'):
-            allnodes = p_func.get_All_Nodes_StartAddr()
-            for i in range(len(allnodes)):
-                print hex(allnodes[i])
-                instr_list = p_func.get_All_instr_in_one_block(allnodes[i])
-                print instr_list
         if (p_func.getFuncName() == 'main'):
             allnodes = p_func.get_All_Nodes_StartAddr()
-            for i in range(len(allnodes)):
-                print hex(allnodes[i])
-                p_func.get_reference_data_one_block(allnodes[i])
+            for ea in allnodes:
+                logger.INFO('block start' + hex(ea))
+                # logger.INFO(p_func.get_reference_data_one_block(ea).next())
+                logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
 
 
 # do something within one function
@@ -217,4 +286,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-    # idc.Exit(0)
+    idc.Exit(0)

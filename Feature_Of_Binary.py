@@ -6,7 +6,10 @@ from idautils import *
 from idaapi import *
 from idc import *
 import sys, os
+OPTYPEOFFSET = 1000
 
+# user defined op type
+o_string = o_imm + OPTYPEOFFSET
 # 将当前路径添加入搜索路径
 sys.path.append(os.getcwd())
 
@@ -44,6 +47,7 @@ class Process_with_Single_Function(object):
     #     elif (op_type == o_phrase):# Memory Ref [Base Reg + Index Reg]    phrase
     #         return GetOperandValue(ea, n)
 
+    '''
     # return the string contained in this instruction
     # if nothing , returns NULL
     # something wrong
@@ -77,10 +81,16 @@ class Process_with_Single_Function(object):
             return None
 
         return All_strings
+'''
+
 
     # returns all Strings referenced in one block
     # return generator of Strings
     def get_All_Strings_of_Block(self, block_startEA):
+        return self.get_OpValue_Block(block_startEA, my_op_type=o_string)
+
+
+        '''
         All_String = []
         # address is not right
         if (block_startEA not in self._block_boundary):
@@ -100,6 +110,7 @@ class Process_with_Single_Function(object):
             ea = it_code.current()
 
         return All_String
+        '''
 
     # return a instruction's n'th oprand's reference
     # ea : the address of the instruction
@@ -158,18 +169,8 @@ class Process_with_Single_Function(object):
 
     # get the whole instruction
     def get_instruction(self, ea):
-        '''
-        newlist = []
-        newlist.append(ua_mnem(ea))
-        i = 0
-        op = GetOpnd(ea,i)
-        while not op == '':
-            print (self.get_reference(ea,i))
-            newlist.append(op)
-            i+=1
-            op = GetOpnd(ea,i)
-        '''
         return idc.GetDisasm(ea)
+
 
     # startEA:basicblock's start address
     # return all instruction in one block
@@ -177,6 +178,8 @@ class Process_with_Single_Function(object):
     def get_All_instr_in_one_block(self, startEA):
 
         return self.get_reference_data_one_block(startEA)
+
+        '''
         #
         # instr_list = []
         # if (startEA not in self._block_boundary):
@@ -201,6 +204,7 @@ class Process_with_Single_Function(object):
         #     ea = it_code.current()
         #
         # return instr_list
+        '''
 
     # return function's name
     def getFuncName(self):
@@ -218,7 +222,52 @@ class Process_with_Single_Function(object):
     def FrameRegsSize(self):  # get size of
         return GetFrameRegsSize(self._func.startEA)
 
+    # get operand value in one block
+    def get_OpValue_Block(self, startEA, my_op_type):
+        OPs = []
+        # address is not right
+        if (startEA not in self._block_boundary):
+            return
 
+        endEA = self._block_boundary[startEA]
+        it_code = func_item_iterator_t(self._func, startEA)
+        ea = it_code.current()
+        while (ea < endEA):
+            OPs += self.get_OpValue(ea, my_op_type)
+            # see if arrive end of the blocks
+            if (not it_code.next_code()):
+                break
+            ea = it_code.current()
+
+        return OPs
+
+    # this is an abstract interface
+    # it can replace functions like get_Numeric_Constant
+    def get_OpValue(self, ea, my_op_type = o_void):
+        OV = []
+        op = 0
+        op_type = GetOpType(ea, op)
+        while (op_type != o_void):
+
+            if (op_type == my_op_type % OPTYPEOFFSET):
+                ov = GetOperandValue(ea, op)
+                if (my_op_type == o_imm):
+                    if SegName(ov) == "":
+                        OV.append(ov)
+                elif(my_op_type == o_string):
+                    if (not SegName(ov) == '.rodata'):
+                        addrx = list(DataRefsFrom(ov))
+                        if len(addrx) == 0:
+                            op += 1
+                            op_type = GetOpType(ea, op)
+                            continue
+                        ov = addrx[0]
+                    OV.append(GetString(ov))
+
+            op += 1
+            op_type = GetOpType(ea, op)
+        return OV
+    '''
     #return the Numeric Constants in the linear address ea
     def get_Numeric_Constants(self, ea):
         # op_enum()
@@ -236,26 +285,12 @@ class Process_with_Single_Function(object):
 
         logger.INFO( "get_Numeric_Constants : " + self.get_instruction(ea) +' : '+ str(Con) )
         return Con
+    '''
 
-    #TODO : get immediate num in blocks
+    #get immediate num in blocks
     def get_Numeric_Constants_One_block(self, startEA):
+        return self.get_OpValue_Block(startEA, my_op_type=o_imm)
 
-        NC = []
-        # address is not right
-        if (startEA not in self._block_boundary):
-            return
-
-        endEA = self._block_boundary[startEA]
-        it_code = func_item_iterator_t(self._func, startEA)
-        ea = it_code.current()
-        while (ea < endEA):
-            NC += self.get_Numeric_Constants(ea)
-            # see if arrive end of the blocks
-            if (not it_code.next_code()):
-                break
-            ea = it_code.current()
-
-        return NC
 
     def getCFG_OF_Func(self):
         # get the Control Flow Graph of the function , return a list in the format of [(current_block_startaddr:next_block_startaddr), ......]
@@ -316,8 +351,8 @@ def main():
             for ea in allnodes:
                 logger.INFO('block start' + hex(ea))
                 # logger.INFO(p_func.get_reference_data_one_block(ea).next())
-                # logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
-                logger.INFO(p_func.get_Numeric_Constants_One_block(ea))
+                logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
+                # logger.INFO(p_func.get_Numeric_Constants_One_block(ea))
 
 
 # do something within one function

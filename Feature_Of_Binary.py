@@ -47,7 +47,6 @@ class Process_with_Single_Function(object):
     # return the string contained in this instruction
     # if nothing , returns NULL
     # something wrong
-    # TODO: handle many kinds of optype
     def get_String_in_instruction(self, ea):
         # logger.INFO('ea: ' + hex(ea) + ' inst: '+ GetDisasm(ea))
         All_strings = []
@@ -219,6 +218,45 @@ class Process_with_Single_Function(object):
     def FrameRegsSize(self):  # get size of
         return GetFrameRegsSize(self._func.startEA)
 
+
+    #return the Numeric Constants in the linear address ea
+    def get_Numeric_Constants(self, ea):
+        # op_enum()
+        Con = []
+        op = 0
+        op_type = GetOpType(ea, op)
+        while ( op_type != o_void ):
+
+            if (op_type == o_imm):
+                if (SegName(GetOperandValue(ea, op)) == ""):# if the immediate number is not an address
+                    Con.append(GetOperandValue(ea, op))
+
+            op += 1
+            op_type = GetOpType(ea, op)
+
+        logger.INFO( "get_Numeric_Constants : " + self.get_instruction(ea) +' : '+ str(Con) )
+        return Con
+
+    #TODO : get immediate num in blocks
+    def get_Numeric_Constants_One_block(self, startEA):
+
+        NC = []
+        # address is not right
+        if (startEA not in self._block_boundary):
+            return
+
+        endEA = self._block_boundary[startEA]
+        it_code = func_item_iterator_t(self._func, startEA)
+        ea = it_code.current()
+        while (ea < endEA):
+            NC += self.get_Numeric_Constants(ea)
+            # see if arrive end of the blocks
+            if (not it_code.next_code()):
+                break
+            ea = it_code.current()
+
+        return NC
+
     def getCFG_OF_Func(self):
         # get the Control Flow Graph of the function , return a list in the format of [(current_block_startaddr:next_block_startaddr), ......]
         # if a function has only one node , it's cfg may be empty
@@ -278,7 +316,8 @@ def main():
             for ea in allnodes:
                 logger.INFO('block start' + hex(ea))
                 # logger.INFO(p_func.get_reference_data_one_block(ea).next())
-                logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
+                # logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
+                logger.INFO(p_func.get_Numeric_Constants_One_block(ea))
 
 
 # do something within one function

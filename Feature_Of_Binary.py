@@ -37,12 +37,45 @@ class Process_with_Single_Function(object):
         self._All_Calls = []
         self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
+
         self._Betweenness = {}
         self._djstra()
 
+        # logger.INFO('betweenness : ' + str(self._Betweenness))
+
+
     #TODO: get Betweenness
     def _djstra(self):
-        pass
+        self._Betweenness[self._Blocks_list[0]] = 0 #首节点加入
+        added_node_set = set()
+        added_node_set.add(self._Blocks_list[0])
+        #记录其前驱节点
+        pre = {}
+        pre[self._Blocks_list[0]] = []
+        while True:
+            not_add_node = set(self._Blocks_list) - added_node_set
+            if len(not_add_node) == 0:
+                break
+            for node in not_add_node:
+                pre[node] = []
+                for added_node in added_node_set.copy():
+                    if node in self._CFG[added_node]:
+                        # added_node 以及其前驱节点加1
+
+                        self._Betweenness[node] = 0
+                        self._update_betweenness(added_node, pre)
+                        pre[node].append(added_node)
+                        added_node_set.add(node)
+                        # logger.INFO('node '+ hex(node) + ' , pre_node ' + hex(added_node))
+        self._Betweenness[self._Blocks_list[0]] = 0
+
+    def _update_betweenness(self, added_node, pre):
+        self._Betweenness[added_node] += 1
+        if len(pre[added_node]) == 0:
+            return
+        for pre_node in pre[added_node]:
+            self._update_betweenness(pre_node, pre)
+
 
     # initial block_boundary , get every node's range of address
     def _init_all_nodes(self):
@@ -54,6 +87,10 @@ class Process_with_Single_Function(object):
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
+        #print CFG
+        for key in self._CFG:
+            succ = [hex(node) for node in self._CFG[key]]
+            logger.INFO('node : '+hex(key) + ' succ :' + str(succ))
 
 
     # # return the n'th operation if it is reference to memory

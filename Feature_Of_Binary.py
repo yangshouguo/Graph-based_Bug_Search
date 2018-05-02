@@ -5,6 +5,7 @@
 from idautils import *
 from idaapi import *
 from idc import *
+import copy
 import sys, os
 OPTYPEOFFSET = 1000
 
@@ -41,27 +42,31 @@ class Process_with_Single_Function(object):
         self._Betweenness = {}
         self._djstra()
 
-        # logger.INFO('betweenness : ' + str(self._Betweenness))
+        #print betweenness
+        # for key in self._Betweenness:
+        #     logger.INFO(hex(key) + str(self._Betweenness[key]))
 
 
-    #TODO: get Betweenness
+    #get Betweenness
     def _djstra(self):
         self._Betweenness[self._Blocks_list[0]] = 0 #首节点加入
         added_node_set = set()
         added_node_set.add(self._Blocks_list[0])
         #记录其前驱节点
         pre = {}
-        pre[self._Blocks_list[0]] = []
+        for node in self._Blocks:
+            pre[node] = []
         while True:
             not_add_node = set(self._Blocks_list) - added_node_set
             if len(not_add_node) == 0:
                 break
-            for node in not_add_node:
-                pre[node] = []
-                for added_node in added_node_set.copy():
+            # for node in not_add_node:
+            #     pre[node] = []
+            #     logger.INFO('added_node : ' + str(added_node_set))
+            for added_node in copy.deepcopy(added_node_set):
+                for node in not_add_node:
                     if node in self._CFG[added_node]:
                         # added_node 以及其前驱节点加1
-
                         self._Betweenness[node] = 0
                         self._update_betweenness(added_node, pre)
                         pre[node].append(added_node)
@@ -88,9 +93,9 @@ class Process_with_Single_Function(object):
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
         #print CFG
-        for key in self._CFG:
-            succ = [hex(node) for node in self._CFG[key]]
-            logger.INFO('node : '+hex(key) + ' succ :' + str(succ))
+        # for key in self._CFG:
+        #     succ = [hex(node) for node in self._CFG[key]]
+        #     logger.INFO('node : '+hex(key) + ' succ :' + str(succ))
 
 
     # # return the n'th operation if it is reference to memory
@@ -400,6 +405,11 @@ class Process_with_Single_Function(object):
     def get_Numeric_Constants_One_block(self, startEA):
         return self.get_OpValue_Block(startEA, my_op_type=o_imm)
 
+    #get Betweenness of Blocks
+    def get_Betweenness_of_Block(self, startEA):
+        if startEA not in self._Betweenness:
+            return None
+        return self._Betweenness[startEA]
 
     def getCFG_OF_Func(self):
         # get the Control Flow Graph of the function , return a list in the format of [(current_block_startaddr:next_block_startaddr), ......]
@@ -453,7 +463,7 @@ def main():
         # print p_func.getAll_Nodes_Addr()
         # for item in p_func.getAll_Nodes_Addr():
         # print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (GetFunctionName(fun.startEA) == 'main'):
+        if (GetFunctionName(fun.startEA) == 'get_socket'):
             p_func = Process_with_Single_Function(fun)
             logger.INFO(p_func.getFuncName())
             # p_func.get_All_Calls()
@@ -461,6 +471,7 @@ def main():
             for ea in allnodes:
                 logger.INFO('block start' + hex(ea))
                 logger.INFO('block offspring:' + str(p_func.get_Offspring_of_Block(ea)))
+                logger.INFO('block betweenness :' + str(p_func.get_Betweenness_of_Block(ea)))
                 # logger.INFO('block instructions :' + str(len(p_func.get_All_instr_in_one_block(ea))))
                 # logger.INFO(p_func.get_reference_data_one_block(ea).next())
                 # logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))

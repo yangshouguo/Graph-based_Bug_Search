@@ -27,7 +27,7 @@ logger.addStreamHandler()
 logger.INFO("\n---------------------\n")
 
 
-class Process_with_Single_Function(object):
+class Attributes_BlockLevel(object):
     def __init__(self, func_t):
         self._Blocks = set()
         self._Blocks_list = []
@@ -207,8 +207,6 @@ class Process_with_Single_Function(object):
     def get_Offspring_of_Block(self, startEA):
         if startEA not in self._Blocks_list:
             return None
-
-
         return len(self._CFG[startEA])
 
 
@@ -312,11 +310,11 @@ class Process_with_Single_Function(object):
         return OPs
 
     def get_Arithmetics_Of_Block(self, ea):
-        return self.get_OpValue_Block(ea, o_arith)
+        return len(self.get_OpValue_Block(ea, o_arith))
 
     # return all function or api names called by this function
     def get_Calls_BLock(self, ea):
-        return self.get_OpValue_Block(ea, o_calls)
+        return len(self.get_OpValue_Block(ea, o_calls))
         # ref = xrefblk_t()
         #
         # for ea in self._Blocks_list:
@@ -345,7 +343,7 @@ class Process_with_Single_Function(object):
 
         elif( my_op_type == o_arith):
             inst = GetDisasm(ea).split(' ')[0].upper()
-            logger.INFO('disasm:' + GetDisasm(ea))
+            # logger.INFO('disasm:' + GetDisasm(ea))
             if (inst in arithmetic_instructions):
                 # logger.INFO('in arithmetic')
                 OV.append(inst)
@@ -359,7 +357,7 @@ class Process_with_Single_Function(object):
             if (my_op_type == o_calls):
                 # logger.INFO("disasm : " + GetDisasm(ea))
                 if (GetDisasm(ea).split(' ')[0].upper() == "CALL"):
-                    logger.INFO('in o_calls : ' + self.get_instruction(ea))
+                    # logger.INFO('in o_calls : ' + self.get_instruction(ea))
                     OV.append(GetDisasm(ea).split(' ')[-1])
                     break
 
@@ -411,22 +409,23 @@ class Process_with_Single_Function(object):
             return None
         return self._Betweenness[startEA]
 
+    def get_CFG(self):
+        return self._CFG
+    '''
     def getCFG_OF_Func(self):
         # get the Control Flow Graph of the function , return a list in the format of [(current_block_startaddr:next_block_startaddr), ......]
         # if a function has only one node , it's cfg may be empty
         # flowchart for a function
-
         flowchart = FlowChart(self._func)
         list = []
-
         for i in range(flowchart.size):
             basicblock = flowchart.__getitem__(i)
             suc = basicblock.succs()
             for item in suc:
                 list.append(((basicblock.startEA), (item.startEA)))
                 # print basicblock.id,hex(basicblock.startEA),hex(basicblock.endEA)
-
         return list
+    '''
 
     # return all the start address of basicblock in form of set
     def get_All_Nodes_StartAddr(self):
@@ -444,10 +443,50 @@ def print_help():
     help = 'args not enough'
     print(help)
 
+#get block attributes
+# return a dic
+# which have keys : startEA, String_Constant, Numberic_Constant, No_Tran, No_Call, No_Instru, No_Arith, No_offspring, Betweenness
+def get_att_block(blockEA, Attribute_Block):
+    AB = Attribute_Block
+    dic = {}
+    dic['startEA'] = blockEA
+    dic['String_Constant'] = AB.get_All_Strings_of_Block(blockEA)
+    dic['Numberic_Constant'] = AB.get_Numeric_Constants_One_block(blockEA)
+    dic['No_Tran'] = AB.get_Trans_of_block(blockEA)
+    dic['No_Call'] = AB.get_Calls_BLock(blockEA)
+    dic['No_Instru'] = len(AB.get_All_instr_in_one_block(blockEA))
+    dic['No_Arith'] = AB.get_Arithmetics_Of_Block(blockEA)
+    dic['No_offspring'] = AB.get_Offspring_of_Block(blockEA)
+    dic['Betweenness'] = AB.get_Betweenness_of_Block(blockEA)
+    return dic
+
+def save_Json(filename):
+
+    with open(filename, 'w') as f:
+        for i in range(0, get_func_qty()):
+            fun = getn_func(i)
+            segname = get_segm_name(fun.startEA)
+            if segname[1:3] not in ["OA", "OM", "te"]:
+                continue
+            if (GetFunctionName(fun.startEA) != 'main'):
+                continue
+            AB = Attributes_BlockLevel(fun)
+            CFG = AB.get_CFG()
+            dic = {}
+            for ea in CFG:
+                dic[ea] = get_att_block(ea, AB)
+                dic[ea]['succ'] = []
+                for succ_ea in CFG[ea]:
+                    dic[ea]['succ'].append(get_att_block(succ_ea, AB))
+            logger.INFO('dic' + str(dic))
+            json.dump(dic, f)
+
 
 
 def main():
 
+    save_Json('nbsmtp.json')
+    return
 
     if len(idc.ARGV) < 0:
         print_help()
@@ -464,7 +503,7 @@ def main():
         # for item in p_func.getAll_Nodes_Addr():
         # print hex(item),hex(p_func.get_Nodes_Endaddr(item))
         if (GetFunctionName(fun.startEA) == 'get_socket'):
-            p_func = Process_with_Single_Function(fun)
+            p_func = Attributes_BlockLevel(fun)
             logger.INFO(p_func.getFuncName())
             # p_func.get_All_Calls()
             allnodes = p_func.get_All_Nodes_StartAddr()
@@ -482,7 +521,7 @@ def main():
                 # logger.INFO('arithmetics :' + str(p_func.get_Arithmetics_Of_Block(ea)))
 
 # do something within one function
-
+import json
 if __name__ == '__main__':
     main()
 

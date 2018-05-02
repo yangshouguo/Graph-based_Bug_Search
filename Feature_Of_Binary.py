@@ -49,20 +49,22 @@ class Attributes_BlockLevel(object):
 
     #get Betweenness
     def _djstra(self):
-        self._Betweenness[self._Blocks_list[0]] = 0 #首节点加入
+        self._Betweenness[self._addr_func] = 0 #首节点加入
         added_node_set = set()
-        added_node_set.add(self._Blocks_list[0])
+        added_node_set.add(self._addr_func)
         #记录其前驱节点
         pre = {}
         for node in self._Blocks:
             pre[node] = []
+        logger.INFO('in %s djstra running ...' % GetFunctionName(self._func.startEA))
         while True:
             not_add_node = set(self._Blocks_list) - added_node_set
             if len(not_add_node) == 0:
                 break
-            # for node in not_add_node:
-            #     pre[node] = []
-            #     logger.INFO('added_node : ' + str(added_node_set))
+
+            logger.INFO('added_node : ' + str(added_node_set))
+            logger.INFO('not added nodes' + str(not_add_node))
+            logger.INFO('CFG' + str(self._CFG))
             for added_node in copy.deepcopy(added_node_set):
                 for node in not_add_node:
                     if node in self._CFG[added_node]:
@@ -73,6 +75,7 @@ class Attributes_BlockLevel(object):
                         added_node_set.add(node)
                         # logger.INFO('node '+ hex(node) + ' , pre_node ' + hex(added_node))
         self._Betweenness[self._Blocks_list[0]] = 0
+        logger.INFO('djstra finished ...')
 
     def _update_betweenness(self, added_node, pre):
         self._Betweenness[added_node] += 1
@@ -462,24 +465,27 @@ def get_att_block(blockEA, Attribute_Block):
 
 def save_Json(filename):
 
-    with open(filename, 'w') as f:
-        for i in range(0, get_func_qty()):
-            fun = getn_func(i)
-            segname = get_segm_name(fun.startEA)
-            if segname[1:3] not in ["OA", "OM", "te"]:
-                continue
-            if (GetFunctionName(fun.startEA) != 'main'):
-                continue
+    for i in range(0, get_func_qty()):
+        fun = getn_func(i)
+        segname = get_segm_name(fun.startEA)
+        if segname[1:3] not in ["OA", "OM", "te"]:
+            continue
+        if (GetFunctionName(fun.startEA) == 'main'):
+            continue
+        with open(filename, 'a') as f:
             AB = Attributes_BlockLevel(fun)
+            logger.INFO(AB.getFuncName())
             CFG = AB.get_CFG()
             dic = {}
+            dic['fun_name'] = AB.getFuncName()
             for ea in CFG:
                 dic[ea] = get_att_block(ea, AB)
                 dic[ea]['succ'] = []
                 for succ_ea in CFG[ea]:
                     dic[ea]['succ'].append(get_att_block(succ_ea, AB))
             logger.INFO('dic' + str(dic))
-            json.dump(dic, f)
+            json.dump(dic, f, indent=4)
+            f.write('\n')
 
 
 
@@ -502,7 +508,7 @@ def main():
         # print p_func.getAll_Nodes_Addr()
         # for item in p_func.getAll_Nodes_Addr():
         # print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (GetFunctionName(fun.startEA) == 'get_socket'):
+        if (GetFunctionName(fun.startEA) != 'main'):
             p_func = Attributes_BlockLevel(fun)
             logger.INFO(p_func.getFuncName())
             # p_func.get_All_Calls()

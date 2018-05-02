@@ -10,14 +10,21 @@ OPTYPEOFFSET = 1000
 
 # user defined op type
 o_string = o_imm + OPTYPEOFFSET
+o_calls = OPTYPEOFFSET + 100
+o_trans = OPTYPEOFFSET + 101 # Transfer instructions
+o_arith = OPTYPEOFFSET + 102 #arithmetic instructions
 # 将当前路径添加入搜索路径
 sys.path.append(os.getcwd())
-
+#
+transfer_instructions = ['MOV','PUSH','POP','XCHG','IN','OUT','XLAT','LEA','LDS','LES','LAHF', 'SAHF' ,'PUSHF', 'POPF']
+arithmetic_instructions = ['ADD', 'SUB', 'MUL', 'DIV', 'XOR', 'INC','DEC', 'IMUL', 'IDIV']
+# is_type_arithmetic()
 from LogRecorder import CLogRecoder
 
 logger = CLogRecoder(logfile='test.log')
 logger.addStreamHandler()
 logger.INFO("\n---------------------\n")
+
 
 class Process_with_Single_Function(object):
     def __init__(self, func_t):
@@ -27,7 +34,15 @@ class Process_with_Single_Function(object):
         self._block_boundary = {}
         self._addr_func = func_t.startEA  # first address of function
         self._name_func = str(GetFunctionName(func_t.startEA))  # GetFunctionName(startEA) returns the function name
+        self._All_Calls = []
+        self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
+        self._Betweenness = {}
+        self._djstra()
+
+    #TODO: get Betweenness
+    def _djstra(self):
+        pass
 
     # initial block_boundary , get every node's range of address
     def _init_all_nodes(self):
@@ -35,9 +50,11 @@ class Process_with_Single_Function(object):
         for i in range(flowchart.size):
             basicblock = flowchart.__getitem__(i)
             self._Blocks.add(basicblock.startEA)
+            self._CFG[basicblock.startEA] = [b.startEA for b in basicblock.succs()]
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
+
 
     # # return the n'th operation if it is reference to memory
     # def get_op(self, ea, n, op_type):
@@ -144,6 +161,15 @@ class Process_with_Single_Function(object):
             'far address'
         return GetOperandValue(ea, n)
 
+    #offspring means children nodes in CFG
+    def get_Offspring_of_Block(self, startEA):
+        if startEA not in self._Blocks_list:
+            return None
+
+
+        return len(self._CFG[startEA])
+
+
     # there is some error to be solved
     # returns the next address of instruction which are in same basic block
     def get_next_instruction_addr(self, ea):
@@ -171,13 +197,15 @@ class Process_with_Single_Function(object):
     def get_instruction(self, ea):
         return idc.GetDisasm(ea)
 
+    def get_Trans_of_block(self, ea):
+        return len(self.get_OpValue_Block(ea, o_trans))
 
     # startEA:basicblock's start address
     # return all instruction in one block
     # it is replaced by function get_reference_data_one_block
     def get_All_instr_in_one_block(self, startEA):
 
-        return self.get_reference_data_one_block(startEA)
+        return list(self.get_reference_data_one_block(startEA))
 
         '''
         #
@@ -241,13 +269,57 @@ class Process_with_Single_Function(object):
 
         return OPs
 
+    def get_Arithmetics_Of_Block(self, ea):
+        return self.get_OpValue_Block(ea, o_arith)
+
+    # return all function or api names called by this function
+    def get_Calls_BLock(self, ea):
+        return self.get_OpValue_Block(ea, o_calls)
+        # ref = xrefblk_t()
+        #
+        # for ea in self._Blocks_list:
+        #     it = func_item_iterator_t(self._func, ea)
+        #
+        #     while it.next_code():
+        #         nea = it.current()
+        #         logger.INFO('address :' + hex(nea))
+        #         frm = [hex(x.frm) for x in XrefsFrom(nea)]
+        #         logger.INFO(str(frm))
+
     # this is an abstract interface
     # it can replace functions like get_Numeric_Constant
     def get_OpValue(self, ea, my_op_type = o_void):
         OV = []
+
+        # instruction level features
+        if (my_op_type == o_trans):
+            #it's a transfer instruction if data transfered between reg and mem
+            # logger.INFO('disasm:' + GetDisasm(ea))
+            inst = GetDisasm(ea).split(' ')[0].upper()
+            if (inst in transfer_instructions):
+                # logger.INFO('in trans')
+                OV.append(inst)
+            return OV
+
+        elif( my_op_type == o_arith):
+            inst = GetDisasm(ea).split(' ')[0].upper()
+            logger.INFO('disasm:' + GetDisasm(ea))
+            if (inst in arithmetic_instructions):
+                # logger.INFO('in arithmetic')
+                OV.append(inst)
+            return OV
+
         op = 0
         op_type = GetOpType(ea, op)
         while (op_type != o_void):
+
+            #o_calls
+            if (my_op_type == o_calls):
+                # logger.INFO("disasm : " + GetDisasm(ea))
+                if (GetDisasm(ea).split(' ')[0].upper() == "CALL"):
+                    logger.INFO('in o_calls : ' + self.get_instruction(ea))
+                    OV.append(GetDisasm(ea).split(' ')[-1])
+                    break
 
             if (op_type == my_op_type % OPTYPEOFFSET):
                 ov = GetOperandValue(ea, op)
@@ -326,6 +398,7 @@ def print_help():
     print(help)
 
 
+
 def main():
 
 
@@ -339,21 +412,26 @@ def main():
             fun.startEA)  # get the segment name of the function by address ,x86 arch segment includes (_init _plt _plt_got _text extern _fini)
         if segname[1:3] not in ["OA", "OM", "te"]:
             continue
-
-        p_func = Process_with_Single_Function(fun)
-        logger.INFO(p_func.getFuncName())
         # print p_func.getCFG_OF_Func()
         # print p_func.getAll_Nodes_Addr()
         # for item in p_func.getAll_Nodes_Addr():
         # print hex(item),hex(p_func.get_Nodes_Endaddr(item))
-        if (p_func.getFuncName() == 'main'):
+        if (GetFunctionName(fun.startEA) == 'main'):
+            p_func = Process_with_Single_Function(fun)
+            logger.INFO(p_func.getFuncName())
+            # p_func.get_All_Calls()
             allnodes = p_func.get_All_Nodes_StartAddr()
             for ea in allnodes:
                 logger.INFO('block start' + hex(ea))
+                logger.INFO('block offspring:' + str(p_func.get_Offspring_of_Block(ea)))
+                # logger.INFO('block instructions :' + str(len(p_func.get_All_instr_in_one_block(ea))))
                 # logger.INFO(p_func.get_reference_data_one_block(ea).next())
-                logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
+                # logger.INFO('String: ' + str(p_func.get_All_Strings_of_Block(ea)))
                 # logger.INFO(p_func.get_Numeric_Constants_One_block(ea))
-
+                # calls = p_func.get_Calls_BLock(ea)
+                # logger.INFO(calls)
+                # logger.INFO('trans number: ' + str(p_func.get_Trans_of_block(ea)))
+                # logger.INFO('arithmetics :' + str(p_func.get_Arithmetics_Of_Block(ea)))
 
 # do something within one function
 

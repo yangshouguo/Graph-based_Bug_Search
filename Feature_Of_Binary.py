@@ -84,6 +84,11 @@ class Attributes_BlockLevel(object):
         for pre_node in pre[added_node]:
             self._update_betweenness(pre_node, pre)
 
+    def _add_predecessors(self, cbs, preb):
+        for cb in cbs:
+            if cb not in self._pre_nodes:
+                self._pre_nodes[cb] = []
+            self._pre_nodes[cb].append(preb)
 
     # initial block_boundary , get every node's range of address
     def _init_all_nodes(self):
@@ -92,9 +97,10 @@ class Attributes_BlockLevel(object):
             basicblock = flowchart.__getitem__(i)
             self._Blocks.add(basicblock.startEA)
             #节点的前继节点
-            self._pre_nodes[basicblock.startEA] = [b.startEA for b in basicblock.preds()]
-            logger.INFO(hex(basicblock.startEA) + ' prenode: ' + str(self._pre_nodes[basicblock.startEA]))
+            # self._pre_nodes[basicblock.startEA] = []
+            # logger.INFO(hex(basicblock.startEA) + ' prenode: ' + str(self._pre_nodes[basicblock.startEA]))
             self._CFG[basicblock.startEA] = [b.startEA for b in basicblock.succs()]
+            self._add_predecessors([b.startEA for b in basicblock.succs()], basicblock.startEA)
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)
         self._Blocks_list.sort()
@@ -152,6 +158,8 @@ class Attributes_BlockLevel(object):
 
         if startEA not in self._Blocks:
             return
+        if startEA not in self._pre_nodes:
+            return []
 
         return self._pre_nodes[startEA]
 

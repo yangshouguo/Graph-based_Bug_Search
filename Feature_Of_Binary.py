@@ -36,9 +36,9 @@ class Attributes_BlockLevel(object):
         self._addr_func = func_t.startEA  # first address of function
         self._name_func = str(GetFunctionName(func_t.startEA))  # GetFunctionName(startEA) returns the function name
         self._All_Calls = []
+        self._pre_nodes = {}
         self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
-
         self._Betweenness = {}
         self._djstra()
 
@@ -62,9 +62,9 @@ class Attributes_BlockLevel(object):
             if len(not_add_node) == 0:
                 break
 
-            logger.INFO('added_node : ' + str(added_node_set))
-            logger.INFO('not added nodes' + str(not_add_node))
-            logger.INFO('CFG' + str(self._CFG))
+            # logger.INFO('added_node : ' + str(added_node_set))
+            # logger.INFO('not added nodes' + str(not_add_node))
+            # logger.INFO('CFG' + str(self._CFG))
             for added_node in copy.deepcopy(added_node_set):
                 for node in not_add_node:
                     if node in self._CFG[added_node]:
@@ -91,6 +91,9 @@ class Attributes_BlockLevel(object):
         for i in range(flowchart.size):
             basicblock = flowchart.__getitem__(i)
             self._Blocks.add(basicblock.startEA)
+            #节点的前继节点
+            self._pre_nodes[basicblock.startEA] = [b.startEA for b in basicblock.preds()]
+            logger.INFO(hex(basicblock.startEA) + ' prenode: ' + str(self._pre_nodes[basicblock.startEA]))
             self._CFG[basicblock.startEA] = [b.startEA for b in basicblock.succs()]
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)
@@ -144,7 +147,13 @@ class Attributes_BlockLevel(object):
 
         return All_strings
 '''
+    #返回该节点的前继节点的首地址
+    def get_PreNodes_of_blocks(self, startEA):
 
+        if startEA not in self._Blocks:
+            return
+
+        return self._pre_nodes[startEA]
 
     # returns all Strings referenced in one block
     # return generator of Strings
@@ -461,6 +470,7 @@ def get_att_block(blockEA, Attribute_Block):
     dic['No_Arith'] = AB.get_Arithmetics_Of_Block(blockEA)
     dic['No_offspring'] = AB.get_Offspring_of_Block(blockEA)
     dic['Betweenness'] = AB.get_Betweenness_of_Block(blockEA)
+    dic['pre'] = [hex(ea) for ea in AB.get_PreNodes_of_blocks(blockEA)]
     return dic
 
 def save_Json(filename):
@@ -479,10 +489,11 @@ def save_Json(filename):
             dic = {}
             dic['fun_name'] = AB.getFuncName()
             for ea in CFG:
-                dic[ea] = get_att_block(ea, AB)
-                dic[ea]['succ'] = []
+                dic[hex(ea)] = get_att_block(ea, AB)
+                dic[hex(ea)]['succ'] = []
                 for succ_ea in CFG[ea]:
-                    dic[ea]['succ'].append(get_att_block(succ_ea, AB))
+                    dic[hex(ea)]['succ'].append(hex(succ_ea))
+
             logger.INFO('dic' + str(dic))
             json.dump(dic, f, indent=4)
             f.write('\n')
@@ -490,8 +501,9 @@ def save_Json(filename):
 
 
 def main():
-
-    save_Json('nbsmtp.json')
+    filename = get_root_filename()
+    filename = filename + '.json'
+    save_Json(filename)
     return
 
     if len(idc.ARGV) < 0:

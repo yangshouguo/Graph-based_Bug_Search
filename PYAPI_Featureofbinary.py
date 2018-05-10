@@ -48,14 +48,14 @@ def test(args):
     # generate ida database file
     if args.b:
         database = '.i64'
-        cmd = 'TVHEADLESS=1 %s -A -Sempty.py %s' % (idapath, binary_path)
-        import commands
+        # from utils import generate_i64
+        cmd = 'TVHEADLESS=1 %s -B  %s' % (idapath, binary_path)
+        # database = generate_i64(binary_path, binary_path + '.i64')
         s,o = commands.getstatusoutput(cmd)
-        if s==0:
-            binary_path += database
-        else:
-            print 'error when %s run' % cmd
-            exit(0)
+        if s != 0:
+            print s,o
+            return
+        binary_path += '.i64'
 
     func_name = ''
     out_file = ''

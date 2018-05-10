@@ -481,14 +481,14 @@ def get_att_block(blockEA, Attribute_Block):
     dic['pre'] = [hex(ea) for ea in AB.get_PreNodes_of_blocks(blockEA)]
     return dic
 
-def save_Json(filename):
+def save_Json(filename, func_name):
 
     for i in range(0, get_func_qty()):
         fun = getn_func(i)
         segname = get_segm_name(fun.startEA)
         if segname[1:3] not in ["OA", "OM", "te"]:
             continue
-        if (GetFunctionName(fun.startEA) == 'main'):
+        if (func_name!= '' and GetFunctionName(fun.startEA) != func_name):
             continue
         with open(filename, 'a') as f:
             AB = Attributes_BlockLevel(fun)
@@ -503,15 +503,23 @@ def save_Json(filename):
                     dic[hex(ea)]['succ'].append(hex(succ_ea))
 
             logger.INFO('dic' + str(dic))
-            json.dump(dic, f, indent=4)
+            json.dump(dic, f)
             f.write('\n')
 
 
 
 def main():
-    filename = get_root_filename()
-    filename = filename + '.json'
-    save_Json(filename)
+
+    if len(idc.ARGV) < 2:
+        return
+    func_name = '' #待提取特征的函数名，''空字符当成提取全部函数的特征
+    filename = idc.ARGV[1]
+    if len(idc.ARGV) >= 3:
+        func_name = idc.ARGV[2]
+
+    # filename = get_root_filename()
+    # filename = filename + '.json'
+    save_Json(filename, func_name)
     return
 
     if len(idc.ARGV) < 0:

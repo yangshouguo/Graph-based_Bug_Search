@@ -23,6 +23,6 @@ class CLogRecoder:
 
 
 if __name__ == '__main__':
-    lr = LogRecoder().addStreamHandler()
+    lr = CLogRecoder().addStreamHandler()
     lr.INFO("test")
 

@@ -8,7 +8,7 @@ from idc import *
 import copy
 import sys, os
 OPTYPEOFFSET = 1000
-
+IMM_MASK = 0xffffffff #立即数的掩码
 # user defined op type
 o_string = o_imm + OPTYPEOFFSET
 o_calls = OPTYPEOFFSET + 100
@@ -26,6 +26,24 @@ logger = CLogRecoder(logfile='test.log')
 logger.addStreamHandler()
 logger.INFO("\n---------------------\n")
 
+#通过file命令获得可执行文件的位数
+def get_ELF_bits(filename):
+    logger.INFO('file path and name: %s' % filename)
+    import commands
+    cmd = 'file -b %s' % filename
+    s, o = commands.getstatusoutput(cmd)
+    if s != 0:
+        print 'error',s,o
+
+    bits = o.strip().split(' ')[1]
+    if (int(bits[:1]) == 32):
+        return 32
+
+    return 64
+
+if get_ELF_bits(get_input_file_path()) == 64:
+    IMM_MASK = 0xffffffffffffffff
+
 
 class Attributes_BlockLevel(object):
     def __init__(self, func_t):
@@ -42,9 +60,33 @@ class Attributes_BlockLevel(object):
         self._Betweenness = {}
         self._djstra()
 
+        self._offspring = {}
+        self.visit = set()
+        logger.INFO('computing offspring...')
+        for node in self._Blocks:
+            self.visit = set()
+            self._offspring[node] = self.dfs(node)
+            # logger.INFO('node: %s : offspring = %d' % (hex(node) , self._offspring[node]))
+
+        logger.INFO('offspring computed!')
         #print betweenness
         # for key in self._Betweenness:
         #     logger.INFO(hex(key) + str(self._Betweenness[key]))
+
+    # dfs to compute node's offspring
+    # return node's offspring
+    def dfs(self, node_startEA):
+
+        if node_startEA in self.visit:
+            return 0
+
+        self.visit.add(node_startEA)
+        offspring = 0
+        for succ_node in self._CFG[node_startEA]:
+            if succ_node not in self.visit:
+                offspring += self.dfs(succ_node) + 1
+        # logger.INFO('node %s returns offspring %d' % (hex(node_startEA), offspring))
+        return offspring
 
 
     #get Betweenness
@@ -62,9 +104,6 @@ class Attributes_BlockLevel(object):
             if len(not_add_node) == 0:
                 break
 
-            # logger.INFO('added_node : ' + str(added_node_set))
-            # logger.INFO('not added nodes' + str(not_add_node))
-            # logger.INFO('CFG' + str(self._CFG))
             for added_node in copy.deepcopy(added_node_set):
                 for node in not_add_node:
                     if node in self._CFG[added_node]:
@@ -227,7 +266,7 @@ class Attributes_BlockLevel(object):
     def get_Offspring_of_Block(self, startEA):
         if startEA not in self._Blocks_list:
             return None
-        return len(self._CFG[startEA])
+        return self._offspring[startEA]
 
 
     # there is some error to be solved
@@ -383,9 +422,13 @@ class Attributes_BlockLevel(object):
 
             if (op_type == my_op_type % OPTYPEOFFSET):
                 ov = GetOperandValue(ea, op)
+                ov &= 0xffffffff #强制转化成32位
                 if (my_op_type == o_imm):
-                    if SegName(ov) == "":
-                        OV.append(ov)
+                    # if SegName(ov) == "":
+                    #     OV.append(ov)
+                    logger.INFO(hex(ea) +' imm : ' + hex(ov))
+                    if ov!=0:
+                        OV.append(hex(ov))
                 elif(my_op_type == o_string):
                     if (not SegName(ov) == '.rodata'):
                         addrx = list(DataRefsFrom(ov))
@@ -462,6 +505,7 @@ class Attributes_BlockLevel(object):
 def print_help():
     help = 'args not enough'
     print(help)
+
 
 #get block attributes
 # return a dic

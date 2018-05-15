@@ -57,9 +57,17 @@ class Attributes_BlockLevel(object):
         self._pre_nodes = {}
         self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
+
+        #compute betweenness
         self._Betweenness = {}
         self._djstra()
 
+        n = len(self._Blocks)
+        if n>1:
+            for x in self._Betweenness:
+                self._Betweenness[x] /= (n*(n-1)/2)*1.0
+
+        #compute offspring
         self._offspring = {}
         self.visit = set()
         logger.INFO('computing offspring...')
@@ -521,7 +529,7 @@ def get_att_block(blockEA, Attribute_Block):
     dic['No_Instru'] = len(AB.get_All_instr_in_one_block(blockEA))
     dic['No_Arith'] = AB.get_Arithmetics_Of_Block(blockEA)
     dic['No_offspring'] = AB.get_Offspring_of_Block(blockEA)
-    dic['Betweenness'] = AB.get_Betweenness_of_Block(blockEA)
+    dic['Betweenness'] = round(AB.get_Betweenness_of_Block(blockEA), 3)
     dic['pre'] = [hex(ea) for ea in AB.get_PreNodes_of_blocks(blockEA)]
     return dic
 

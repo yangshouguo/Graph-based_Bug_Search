@@ -1,0 +1,180 @@
+[
+    {
+        "0x4012a5L": {
+            "pre": [
+                "0x401290L"
+            ], 
+            "Betweenness": 0.167, 
+            "No_Call": 0, 
+            "No_offspring": 2, 
+            "String_Constant": [], 
+            "No_Instru": 3, 
+            "startEA": 4199077, 
+            "succ": [
+                "0x4012afL", 
+                "0x4012c0L"
+            ], 
+            "No_Tran": 1, 
+            "adjacent_matrix": [
+                [
+                    0, 
+                    1, 
+                    0, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    1, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ]
+            ], 
+            "No_Arith": 0, 
+            "Numberic_Constant": []
+        }, 
+        "0x4012c0L": {
+            "pre": [
+                "0x401290L", 
+                "0x4012a5L"
+            ], 
+            "Betweenness": 0.0, 
+            "No_Call": 0, 
+            "No_offspring": 0, 
+            "String_Constant": [], 
+            "No_Instru": 2, 
+            "startEA": 4199104, 
+            "succ": [], 
+            "No_Tran": 1, 
+            "adjacent_matrix": [
+                [
+                    0, 
+                    1, 
+                    0, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    1, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ]
+            ], 
+            "No_Arith": 0, 
+            "Numberic_Constant": []
+        }, 
+        "fun_name": "deregister_tm_clones", 
+        "0x401290L": {
+            "pre": [], 
+            "Betweenness": 0.0, 
+            "No_Call": 0, 
+            "No_offspring": 3, 
+            "String_Constant": [], 
+            "No_Instru": 6, 
+            "startEA": 4199056, 
+            "succ": [
+                "0x4012a5L", 
+                "0x4012c0L"
+            ], 
+            "No_Tran": 3, 
+            "adjacent_matrix": [
+                [
+                    0, 
+                    1, 
+                    0, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    1, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ]
+            ], 
+            "No_Arith": 1, 
+            "Numberic_Constant": [
+                "0x60516fL", 
+                "0x605168L", 
+                "0xeL"
+            ]
+        }, 
+        "0x4012afL": {
+            "pre": [
+                "0x4012a5L"
+            ], 
+            "Betweenness": 0.0, 
+            "No_Call": 0, 
+            "No_offspring": 0, 
+            "String_Constant": [], 
+            "No_Instru": 3, 
+            "startEA": 4199087, 
+            "succ": [], 
+            "No_Tran": 2, 
+            "adjacent_matrix": [
+                [
+                    0, 
+                    1, 
+                    0, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    1, 
+                    1
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ], 
+                [
+                    0, 
+                    0, 
+                    0, 
+                    0
+                ]
+            ], 
+            "No_Arith": 0, 
+            "Numberic_Constant": [
+                "0x605168L"
+            ]
+        }
+    }
+]

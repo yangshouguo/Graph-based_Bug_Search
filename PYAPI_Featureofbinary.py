@@ -3,7 +3,7 @@
 
 #系统ida所在的路径
 idapath = 'idat64'
-import os,sys,time,commands,json
+import os,time,commands,json
 import argparse
 
 parse = argparse.ArgumentParser()
@@ -69,7 +69,7 @@ def test(args):
 
     if len(out_file) > 0:
         with open(out_file, 'w') as f:
-            json.dump(feature, f)
+            json.dump(feature, f, indent=4)
     else:
         for x in feature:
             print x

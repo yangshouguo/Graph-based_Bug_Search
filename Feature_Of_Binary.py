@@ -5,6 +5,7 @@
 from idautils import *
 from idaapi import *
 from idc import *
+from idautils import DecodeInstruction
 import copy
 import sys, os
 OPTYPEOFFSET = 1000
@@ -21,8 +22,8 @@ transfer_instructions = ['MOV','PUSH','POP','XCHG','IN','OUT','XLAT','LEA','LDS'
 arithmetic_instructions = ['ADD', 'SUB', 'MUL', 'DIV', 'XOR', 'INC','DEC', 'IMUL', 'IDIV']
 # is_type_arithmetic()
 from LogRecorder import CLogRecoder
-
-logger = CLogRecoder(logfile='test.log')
+ymd = time.strftime("%Y-%m-%d", time.localtime())
+logger = CLogRecoder(logfile='%s.log'% (ymd))
 logger.addStreamHandler()
 logger.INFO("\n---------------------\n")
 
@@ -81,6 +82,7 @@ class Attributes_BlockLevel(object):
         # for key in self._Betweenness:
         #     logger.INFO(hex(key) + str(self._Betweenness[key]))
 
+
     # dfs to compute node's offspring
     # return node's offspring
     def dfs(self, node_startEA):
@@ -96,6 +98,12 @@ class Attributes_BlockLevel(object):
         # logger.INFO('node %s returns offspring %d' % (hex(node_startEA), offspring))
         return offspring
 
+    # returns Oprand from ea
+    # inst_t.Operands : ida_ua.operands_array
+    # inst_t.Op1 : ida_ua.op_t
+    def _get_OpRands(self, ea):
+        inst_t = DecodeInstruction(ea)
+        return inst_t.Operands
 
     #get Betweenness
     def _djstra(self):
@@ -269,6 +277,25 @@ class Attributes_BlockLevel(object):
             print
             'far address'
         return GetOperandValue(ea, n)
+
+    def get_AdjacencyMatrix(self):
+        list = []
+        for node in self._Blocks_list:
+            newlist = []
+            for node2 in self._Blocks_list:
+                # if node2 == node:
+                #     newlist.append(0)
+                # else:
+                if node2 in self._CFG[node]:
+                    newlist.append(1)
+                else:
+                    newlist.append(0)
+            list.append(newlist)
+
+        return list
+
+
+
 
     #offspring means children nodes in CFG
     def get_Offspring_of_Block(self, startEA):
@@ -531,6 +558,7 @@ def get_att_block(blockEA, Attribute_Block):
     dic['No_offspring'] = AB.get_Offspring_of_Block(blockEA)
     dic['Betweenness'] = round(AB.get_Betweenness_of_Block(blockEA), 3)
     dic['pre'] = [hex(ea) for ea in AB.get_PreNodes_of_blocks(blockEA)]
+    dic['adjacent_matrix'] = AB.get_AdjacencyMatrix()
     return dic
 
 def save_Json(filename, func_name):

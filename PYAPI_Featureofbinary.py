@@ -7,6 +7,7 @@ import os,time,commands,json
 import argparse
 
 parse = argparse.ArgumentParser()
+pro_path = os.getcwd()
 
 class getFeature:
     def __init__(self, binarypath):
@@ -31,10 +32,13 @@ class getFeature:
 
     def get_Feature_Function(self, func_name):
 
-        cmd = "TVHEADLESS=1 %s -A -S'Feature_Of_Binary.py %s %s' %s" % (idapath, self._tmpfile, func_name, self._bin)
+        cmd = "TVHEADLESS=1 %s -A -S'%s/Feature_Of_Binary.py %s %s' %s" % (idapath, pro_path, self._tmpfile, func_name, self._bin)
+        print cmd
         s,o = commands.getstatusoutput(cmd)
 
         if s!=0 :
+            print 'error occurs when extract Features from ida database file'
+            print 'cmd is %s' % cmd
             print s,o
             return None
 

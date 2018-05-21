@@ -49,7 +49,11 @@ def test(args):
     if args.b:
         database = '.i64'
         # from utils import generate_i64
-        cmd = 'TVHEADLESS=1 %s -B  %s' % (idapath, binary_path)
+        # cmd = 'TVHEADLESS=1 %s -B  %s' % (idapath, binary_path)
+
+        # new format to generate ida database file : ida -c -A -Sanalysis.idc input-file
+        cmd = 'TVHEADLESS=1 %s -c -A -Sanalysis.idc %s' % (idapath, binary_path)
+
         # database = generate_i64(binary_path, binary_path + '.i64')
         print cmd
         s,o = commands.getstatusoutput(cmd)

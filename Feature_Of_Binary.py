@@ -583,7 +583,8 @@ def save_Json(filename, func_name):
                     dic[hex(ea)]['succ'].append(hex(succ_ea))
 
             # logger.INFO('dic' + str(dic))
-            json.dump(dic, f)
+            json.dump(dic, f, ensure_ascii=False)
+
             f.write('\n')
 
 

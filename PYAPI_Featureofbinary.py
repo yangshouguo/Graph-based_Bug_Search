@@ -20,7 +20,7 @@ class getFeature:
         with open(self._tmpfile,'r') as f:
             for line in f.readlines():
                 # print line
-                x = json.loads(line)
+                x = json.loads(unicode(line,errors='ignore'))
                 yield x
 
     def _del_tmpfile(self):

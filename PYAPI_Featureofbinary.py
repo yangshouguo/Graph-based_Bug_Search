@@ -7,12 +7,13 @@ import os,time,commands,json
 import argparse
 
 parse = argparse.ArgumentParser()
-pro_path = os.getcwd()
+import sys
+pro_path = sys.path[0]
 
 class getFeature:
     def __init__(self, binarypath):
         self._bin = binarypath
-        self._tmpfile = binarypath + str(time.time()) + '.json'
+        self._tmpfile = pro_path + os.sep + binarypath.split('/')[-1] + str(time.time()) + '.json'
         pass
 
     #read json file to get features
@@ -33,7 +34,7 @@ class getFeature:
     def get_Feature_Function(self, func_name):
 
         cmd = "TVHEADLESS=1 %s -A -S'%s/Feature_Of_Binary.py %s %s' %s" % (idapath, pro_path, self._tmpfile, func_name, self._bin)
-        print cmd
+        # print cmd
         s,o = commands.getstatusoutput(cmd)
 
         if s!=0 :

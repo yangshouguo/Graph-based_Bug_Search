@@ -51,9 +51,11 @@ def test(args):
         # from utils import generate_i64
         cmd = 'TVHEADLESS=1 %s -B  %s' % (idapath, binary_path)
         # database = generate_i64(binary_path, binary_path + '.i64')
+        print cmd
         s,o = commands.getstatusoutput(cmd)
         if s != 0:
-            print s,o
+            print 'error occurs when generate ida database file ',s,o
+            print 'program exits...'
             return
         binary_path += '.i64'
 

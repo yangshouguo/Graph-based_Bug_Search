@@ -19,7 +19,7 @@ o_arith = OPTYPEOFFSET + 102 #arithmetic instructions
 sys.path.append(os.getcwd())
 #
 transfer_instructions = ['MOV','PUSH','POP','XCHG','IN','OUT','XLAT','LEA','LDS','LES','LAHF', 'SAHF' ,'PUSHF', 'POPF']
-arithmetic_instructions = ['ADD', 'SUB', 'MUL', 'DIV', 'XOR', 'INC','DEC', 'IMUL', 'IDIV']
+arithmetic_instructions = ['ADD', 'SUB', 'MUL', 'DIV', 'XOR', 'INC','DEC', 'IMUL', 'IDIV', 'OR', 'NOT', 'SLL', 'SRL']
 # is_type_arithmetic()
 from LogRecorder import CLogRecoder
 ymd = time.strftime("%Y-%m-%d", time.localtime())
@@ -29,7 +29,7 @@ logger.INFO("\n---------------------\n")
 
 #通过file命令获得可执行文件的位数
 def get_ELF_bits(filename):
-    logger.INFO('file path and name: %s' % filename)
+    # logger.INFO('file path and name: %s' % filename)
     import commands
     cmd = 'file -b %s' % filename
     s, o = commands.getstatusoutput(cmd)
@@ -558,7 +558,6 @@ def get_att_block(blockEA, Attribute_Block):
     dic['No_offspring'] = AB.get_Offspring_of_Block(blockEA)
     dic['Betweenness'] = round(AB.get_Betweenness_of_Block(blockEA), 3)
     dic['pre'] = [hex(ea) for ea in AB.get_PreNodes_of_blocks(blockEA)]
-    dic['adjacent_matrix'] = AB.get_AdjacencyMatrix()
     return dic
 
 def save_Json(filename, func_name):
@@ -576,13 +575,14 @@ def save_Json(filename, func_name):
             CFG = AB.get_CFG()
             dic = {}
             dic['fun_name'] = AB.getFuncName()
+            dic['adjacentmat'] = AB.get_AdjacencyMatrix()
             for ea in CFG:
                 dic[hex(ea)] = get_att_block(ea, AB)
                 dic[hex(ea)]['succ'] = []
                 for succ_ea in CFG[ea]:
                     dic[hex(ea)]['succ'].append(hex(succ_ea))
 
-            logger.INFO('dic' + str(dic))
+            # logger.INFO('dic' + str(dic))
             json.dump(dic, f)
             f.write('\n')
 

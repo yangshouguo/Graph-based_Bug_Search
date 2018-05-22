@@ -66,7 +66,7 @@ def test(args):
             print 'error occurs when generate ida database file ',s,o
             print 'program exits...'
             return
-        binary_path += '.i64'
+        binary_path =  binary_path.split('.')[0]+'.i64' # Zlib.so -> Zlib.i64
 
     func_name = ''
     out_file = ''

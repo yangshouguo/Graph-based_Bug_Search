@@ -114,11 +114,19 @@ class Attributes_BlockLevel(object):
         pre = {}
         for node in self._Blocks:
             pre[node] = []
+        max_loop_time = len(pre)
+        i = 0
         logger.INFO('in %s djstra running ...' % GetFunctionName(self._func.startEA))
+        # logger.INFO('first node address %s' % str(self._Betweenness))
         while True:
             not_add_node = set(self._Blocks_list) - added_node_set
-            if len(not_add_node) == 0:
+            if len(not_add_node) == 0 :
                 break
+            if i > max_loop_time:
+                logger.INFO('function  max loop !!!! please check CFG in ida')
+                break
+
+            # logger.INFO('not added node %s' % str(not_add_node))
 
             for added_node in copy.deepcopy(added_node_set):
                 for node in not_add_node:
@@ -128,7 +136,9 @@ class Attributes_BlockLevel(object):
                         self._update_betweenness(added_node, pre)
                         pre[node].append(added_node)
                         added_node_set.add(node)
+                        # logger.INFO('node %s added' % (hex(node)))
                         # logger.INFO('node '+ hex(node) + ' , pre_node ' + hex(added_node))
+            i += 1
         self._Betweenness[self._Blocks_list[0]] = 0
         logger.INFO('djstra finished ...')
 
@@ -504,7 +514,7 @@ class Attributes_BlockLevel(object):
     #get Betweenness of Blocks
     def get_Betweenness_of_Block(self, startEA):
         if startEA not in self._Betweenness:
-            return None
+            return -0
         return self._Betweenness[startEA]
 
     def get_CFG(self):

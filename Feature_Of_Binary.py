@@ -6,7 +6,7 @@ from idautils import *
 from idaapi import *
 from idc import *
 from idautils import DecodeInstruction
-import copy
+import networkx as nx
 import sys, os
 OPTYPEOFFSET = 1000
 IMM_MASK = 0xffffffff #立即数的掩码
@@ -55,18 +55,20 @@ class Attributes_BlockLevel(object):
         self._addr_func = func_t.startEA  # first address of function
         self._name_func = str(GetFunctionName(func_t.startEA))  # GetFunctionName(startEA) returns the function name
         self._All_Calls = []
+        self._G = nx.DiGraph()
         self._pre_nodes = {}
         self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
 
         #compute betweenness
-        self._Betweenness = {}
-        self._djstra()
-
-        n = len(self._Blocks)
-        if n>1:
-            for x in self._Betweenness:
-                self._Betweenness[x] /= (n*(n-1)/2)*1.0
+        self._Betweenness = nx.betweenness_centrality(self._G)
+        # self._Betweenness = {}
+        # self._dijKstra()
+        # normalize betweenness
+        # n = len(self._Blocks)
+        # if n>1:
+        #     for x in self._Betweenness:
+        #         self._Betweenness[x] /= (n*(n-1)/2)*1.0
 
         #compute offspring
         self._offspring = {}
@@ -105,49 +107,60 @@ class Attributes_BlockLevel(object):
         inst_t = DecodeInstruction(ea)
         return inst_t.Operands
 
-    #get Betweenness
-    def _djstra(self):
-        self._Betweenness[self._addr_func] = 0 #首节点加入
-        added_node_set = set()
-        added_node_set.add(self._addr_func)
-        #记录其前驱节点
-        pre = {}
-        for node in self._Blocks:
-            pre[node] = []
-        max_loop_time = len(pre)
-        i = 0
-        logger.INFO('in %s djstra running ...' % GetFunctionName(self._func.startEA))
-        # logger.INFO('first node address %s' % str(self._Betweenness))
-        while True:
-            not_add_node = set(self._Blocks_list) - added_node_set
-            if len(not_add_node) == 0 :
-                break
-            if i > max_loop_time:
-                logger.INFO('function  max loop !!!! please check CFG in ida')
-                break
+    # #get Betweenness
+    # def _djstra(self):
+    #     self._Betweenness[self._addr_func] = 0 #首节点加入
+    #     added_node_set = set()
+    #     added_node_set.add(self._addr_func)
+    #     #记录其前驱节点
+    #     pre = {}
+    #     for node in self._Blocks:
+    #         pre[node] = []
+    #     max_loop_time = len(pre)
+    #     i = 0
+    #     logger.INFO('in %s djstra running ...' % GetFunctionName(self._func.startEA))
+    #     logger.INFO('first node address %s' % str(self._Betweenness))
+    #     while True:
+    #         not_add_node = set(self._Blocks_list) - added_node_set
+    #         if len(not_add_node) == 0 :
+    #             break
+    #         if i > max_loop_time:
+    #             logger.INFO('function  max loop !!!! please check CFG in ida')
+    #             break
+    #
+    #         logger.INFO('not added node number:  %d' % len(not_add_node))
+    #         #待优化
+    #         #added_node集合数目比较大时，非常耗费计算资源
+    #         for added_node in copy.deepcopy(added_node_set):
+    #             for node in not_add_node:
+    #                 if node in self._CFG[added_node]:
+    #                     # added_node 以及其前驱节点加1
+    #                     self._Betweenness[node] = 0
+    #                     self._update_betweenness(added_node, pre)
+    #                     pre[node].append(added_node)
+    #                     added_node_set.add(node)
+    #                     # logger.INFO('node %s added' % (hex(node)))
+    #                     # logger.INFO('node '+ hex(node) + ' , pre_node ' + hex(added_node))
+    #         i += 1
+    #     self._Betweenness[self._Blocks_list[0]] = 0
+    #     logger.INFO('djstra finished ...')
 
-            # logger.INFO('not added node %s' % str(not_add_node))
+    # get Betweenness
 
-            for added_node in copy.deepcopy(added_node_set):
-                for node in not_add_node:
-                    if node in self._CFG[added_node]:
-                        # added_node 以及其前驱节点加1
-                        self._Betweenness[node] = 0
-                        self._update_betweenness(added_node, pre)
-                        pre[node].append(added_node)
-                        added_node_set.add(node)
-                        # logger.INFO('node %s added' % (hex(node)))
-                        # logger.INFO('node '+ hex(node) + ' , pre_node ' + hex(added_node))
-            i += 1
-        self._Betweenness[self._Blocks_list[0]] = 0
-        logger.INFO('djstra finished ...')
 
     def _update_betweenness(self, added_node, pre):
         self._Betweenness[added_node] += 1
         if len(pre[added_node]) == 0:
             return
-        for pre_node in pre[added_node]:
-            self._update_betweenness(pre_node, pre)
+        queue = []
+        queue+=pre[added_node]
+        while len(queue) > 0:
+            node = queue.pop(0)
+            queue += pre[node]
+            self._Betweenness[node] += 1
+
+        # for pre_node in pre[added_node]:
+            # self._update_betweenness(pre_node, pre)
 
     def _add_predecessors(self, cbs, preb):
         for cb in cbs:
@@ -161,10 +174,14 @@ class Attributes_BlockLevel(object):
         for i in range(flowchart.size):
             basicblock = flowchart.__getitem__(i)
             self._Blocks.add(basicblock.startEA)
+            self._G.add_node(basicblock.startEA)
             #节点的前继节点
             # self._pre_nodes[basicblock.startEA] = []
             # logger.INFO(hex(basicblock.startEA) + ' prenode: ' + str(self._pre_nodes[basicblock.startEA]))
             self._CFG[basicblock.startEA] = [b.startEA for b in basicblock.succs()]
+            for b in basicblock.succs():
+                self._G.add_node(b.startEA)
+                self._G.add_edge(basicblock.startEA, b.startEA)
             self._add_predecessors([b.startEA for b in basicblock.succs()], basicblock.startEA)
             self._block_boundary[basicblock.startEA] = basicblock.endEA
         self._Blocks_list = list(self._Blocks)

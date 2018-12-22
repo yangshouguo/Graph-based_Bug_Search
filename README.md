@@ -5,6 +5,8 @@ and improve it's method if i can
 you need change the variable idapath in file PYAPI_Featureobbinary.py line 5
 to the ida text interface in your system
 
+### 使用pip 给IDAPython安装python库
+
 安装networkx python库, 并配置Feature_Of_Binary脚本里面变量networkx_path
 
     pip install setuptools --target=/home/ysg/ida-6.95/python

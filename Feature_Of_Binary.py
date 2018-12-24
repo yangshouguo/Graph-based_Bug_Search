@@ -2,12 +2,16 @@
 # time 2017:8:21  15:37
 # author ysg
 # function : extract features from executable binary file
+
+
+import sys, os
+sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from idautils import *
 from idaapi import *
 from idc import *
 from idautils import DecodeInstruction
+
 import networkx as nx
-import sys, os
 OPTYPEOFFSET = 1000
 IMM_MASK = 0xffffffff #立即数的掩码
 # user defined op type
@@ -60,6 +64,9 @@ class Attributes_BlockLevel(object):
         self._CFG = {} # key : Block startEA ; value : Block startEA of successors
         self._init_all_nodes()
 
+        self.callee = set() #被该函数调用的其他函数
+        self.caller = set() #调用该函数的其他函数集合
+
         #compute betweenness
         self._Betweenness = nx.betweenness_centrality(self._G)
         # self._Betweenness = {}
@@ -84,6 +91,20 @@ class Attributes_BlockLevel(object):
         # for key in self._Betweenness:
         #     logger.INFO(hex(key) + str(self._Betweenness[key]))
 
+    #TODO: 返回被该函数调用的其他函数
+    def get_callees(self):
+
+        #function body
+        return self.callee
+
+    #TODO: 返回调用该函数的其他函数
+    def get_callers(self):
+        #function body
+        addr =self._func.startEA
+        for ref in CodeRefsTo(addr, 1):
+            print ref.addr
+
+        return self.caller
 
     # dfs to compute node's offspring
     # return node's offspring
@@ -665,6 +686,12 @@ def main():
 # do something within one function
 import json
 if __name__ == '__main__':
-    main()
 
-    idc.Exit(0)
+    #测试使用代码块 上
+    # for func in Functions():
+    #     AB = Attributes_BlockLevel(func_t(func))
+    #     AB.get_callers()
+    #测试使用代码块 下
+
+    main()
+    # idc.Exit(0)

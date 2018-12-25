@@ -80,7 +80,7 @@ class Attributes_BlockLevel(object):
         #compute offspring
         self._offspring = {}
         self.visit = set()
-        logger.INFO('computing offspring...')
+        # logger.INFO('computing offspring...')
         for node in self._Blocks:
             self.visit = set()
             self._offspring[node] = self.dfs(node)
@@ -99,11 +99,22 @@ class Attributes_BlockLevel(object):
 
     #TODO: 返回调用该函数的其他函数
     def get_callers(self):
+
+        #给定一个指令地址，返回包含该指令地址的函数的起始地址和函数名
+        def get_func_including_addr(addr):
+            func_list = list(Functions(addr, addr+1)) #得到包含该地址addr和addr+1的函数列表，取出第一个函数即为目标函数
+            if len(func_list) < 1:
+                return None
+            func_startEA = func_list[0]
+            return func_startEA, Name(func_startEA)
+            pass
         #function body
         addr =self._func.startEA
+        # logger.INFO("function startEA {}".format(hex(addr)))
         for ref in CodeRefsTo(addr, 1):
-            print ref.addr
-
+            ref_func = get_func_including_addr(ref)
+            if ref_func:
+                self.caller.add(ref_func[0])
         return self.caller
 
     # dfs to compute node's offspring
@@ -683,15 +694,25 @@ def main():
                 # logger.INFO('trans number: ' + str(p_func.get_Trans_of_block(ea)))
                 # logger.INFO('arithmetics :' + str(p_func.get_Arithmetics_Of_Block(ea)))
 
+#test for callers
+#2018年12月25日10:19:07 测试通过
+def test_caller():
+    #测试使用代码块 上
+    for func in Functions():
+        AB = Attributes_BlockLevel(func_t(func))
+        func_callers = AB.get_callers()
+        print "function {} {}".format(hex(func), Name(func))
+        for caller_ea in func_callers:
+            print "callers {} {}".format(hex(caller_ea), Name(caller_ea))
+    #测试使用代码块 下
+
+def test_callee():
+
 # do something within one function
 import json
 if __name__ == '__main__':
 
-    #测试使用代码块 上
-    # for func in Functions():
-    #     AB = Attributes_BlockLevel(func_t(func))
-    #     AB.get_callers()
-    #测试使用代码块 下
+    test_caller()
 
-    main()
+    # main()
     # idc.Exit(0)

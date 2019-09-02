@@ -10,7 +10,7 @@ like : idapath = 'idal64'
 
 安装networkx python库
 
-    pip install setuptools --target=/home/ysg/ida-6.95/python
+    pip install setuptools --target=/home/ysg/ida-6.95/python  #your ida python directory
     pip install networkx --target=/home/ysg/ida-6.95/python
 
 --target 后面的值是你的IDAPython所在目录

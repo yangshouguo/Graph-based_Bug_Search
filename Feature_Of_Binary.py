@@ -706,13 +706,13 @@ def test_caller():
             print "callers {} {}".format(hex(caller_ea), Name(caller_ea))
     #测试使用代码块 下
 
-def test_callee():
+#def test_callee():
 
 # do something within one function
 import json
 if __name__ == '__main__':
 
-    test_caller()
+    # test_caller()
 
-    # main()
-    # idc.Exit(0)
+    main()
+    idc.Exit(0)

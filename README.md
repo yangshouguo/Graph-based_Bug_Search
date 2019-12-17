@@ -1,8 +1,8 @@
 Extract function feature the paper 'Scalable Graph-based Bug Search for Firmware Images' mentioned
 
-## Before you use !!!
+## Before use !!!
 you need change the variable idapath in file PYAPI_Featureobbinary.py line 5 to the ida text interface in your system
-like : idapath = 'idal64'
+like : `idapath = 'path/to/idal64'`
 
 ### 使用pip 给IDAPython安装python库
 

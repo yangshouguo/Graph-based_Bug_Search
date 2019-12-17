@@ -30,7 +30,15 @@ ymd = time.strftime("%Y-%m-%d", time.localtime())
 logger = CLogRecoder(logfile='%s.log'% (ymd))
 logger.addStreamHandler()
 logger.INFO("\n---------------------\n")
-
+wait_for_analysis_to_finish()
+def wait_for_analysis_to_finish():
+    '''
+    等待ida将二进制文件分析完毕再执行其他操作
+    :return:
+    '''
+    idaapi.autoWait()
+    idc.Wait()
+    
 #通过file命令获得可执行文件的位数
 def get_ELF_bits(filename):
     # logger.INFO('file path and name: %s' % filename)

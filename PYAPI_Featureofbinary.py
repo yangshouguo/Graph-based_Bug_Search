@@ -51,23 +51,6 @@ def test(args):
 
     binary_path = args.binaryfile
     # generate ida database file
-    if args.b:
-        database = '.i64'
-        # from utils import generate_i64
-        # cmd = 'TVHEADLESS=1 %s -B  %s' % (idapath, binary_path)
-
-        # new format to generate ida database file : ida -c -A -Sanalysis.idc input-file
-        cmd = 'TVHEADLESS=1 %s -c -A -Sanalysis.idc %s' % (idapath, binary_path)
-
-        # database = generate_i64(binary_path, binary_path + '.i64')
-        print cmd
-        s,o = commands.getstatusoutput(cmd)
-        if s != 0:
-            print 'error occurs when generate ida database file ',s,o
-            print 'program exits...'
-            return
-        binary_path =  binary_path.split('.')[0]+'.i64' # Zlib.so -> Zlib.i64
-
     func_name = ''
     out_file = ''
     if args.f:

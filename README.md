@@ -1,21 +1,10 @@
-Extract function feature the paper 'Scalable Graph-based Bug Search for Firmware Images' mentioned
+Extract features for the paper 'Scalable Graph-based Bug Search for Firmware Images'
 
-## Before use !!!
+# Before use !!!
 you need change the variable idapath in file PYAPI_Featureobbinary.py line 5 to the ida text interface in your system
 like : `idapath = 'path/to/idal64'`
 
-### 使用pip 给IDAPython安装python库
-
-安装networkx python库
-```
-    pip install setuptools --target=/home/ysg/ida-6.95/python  #your ida python directory
-    pip install networkx --target=/home/ysg/ida-6.95/python
-```
---target 后面的值是你的IDAPython所在目录
-
-
-
-## you can use like this
+# Usage
 ` python PYAPI_Featureofbinary.py -h to see help of script `
 
 or

@@ -2,7 +2,7 @@
 #无需学会idapython 的使用，直接调用该类下的接口即可获得函数
 
 #系统ida所在的路径
-idapath = 'idat64'
+idapath = '/home/ubuntu/disk/hdd_1/ysg/tool/idapro-7.5/idat64'
 import os,time,commands,json
 import argparse
 
@@ -14,7 +14,6 @@ class getFeature:
     def __init__(self, binarypath):
         self._bin = binarypath
         self._tmpfile = pro_path + os.sep + binarypath.split('/')[-1] + str(time.time()) + '.json'
-        pass
 
     #read json file to get features
     def _ReadFeatures(self):
@@ -61,9 +60,37 @@ def test(args):
     gf = getFeature(binary_path)
     feature = gf.get_Feature_Function(func_name)
 
+
+
     if len(out_file) > 0:
+        func_dics = []
+        for dic in feature:
+            nodes_ordered_list = []
+            for node_addr in dic.keys():
+                if str(node_addr).startswith('0x'):
+                    nodes_ordered_list.append(node_addr)
+            feature_list = [] # the feature list for BBs
+            adjacent_matrix = [[0 for i in range(len(nodes_ordered_list))] for j in range(len(nodes_ordered_list))] # adjacent matrix for CFG
+            for i, node in enumerate(nodes_ordered_list):
+                feature_list.append([
+                    len(dic[node]["String_Constant"]),
+                    len(dic[node]["Numberic_Constant"]),
+                    dic[node]["No_Tran"],
+                    dic[node]["No_Call"],
+                    dic[node]["No_Instru"],
+                    dic[node]["No_Arith"],
+                    dic[node]["No_offspring"],
+                ])
+                for presuccessor in dic[node]['pre']:
+                    p_i = nodes_ordered_list.index(presuccessor)
+                    adjacent_matrix[p_i][i] = 1
+                new_dic = {"func_name": dic['fun_name'],
+                           'feature_list':feature_list,
+                           'adjacent_matrix': adjacent_matrix}
+                func_dics.append(new_dic)
+
         with open(out_file, 'w') as f:
-            json.dump(feature, f, indent=4)
+            json.dump(func_dics, f, indent=4)
     else:
         for x in feature:
             print x
@@ -76,5 +103,4 @@ if __name__ == '__main__':
     parse.add_argument('-o', help='output filename')
     args = parse.parse_args()
     test(args)
-
 
